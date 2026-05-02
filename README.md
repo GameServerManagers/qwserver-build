@@ -14,10 +14,33 @@ dated release and a moving `latest` release.
 - [QWFWD](https://github.com/QW-Group/qwfwd)
   - QuakeWorld network forwarder/proxy binary commonly used alongside servers
     to improve routing and connectivity.
+- [QTV](https://github.com/QW-Group/qtv)
+  - QuakeTV spectator relay binary (`qtv/qtv.bin`) used for broadcasting
+    matches; useful for leagues, streams, and public spectators.
+- [nQuake distfiles snapshot](https://github.com/nQuake/distfiles/releases/tag/snapshot)
+  - Bundled maps, configs, assets, and runtime files that are packaged together
+    into the final LinuxGSM-ready archive.
 
 These are packaged together to create one installable server
 bundle that contains the core daemon plus the typical competitive QW runtime
 files and tooling.
+
+## What you actually need
+
+For a working modern QuakeWorld server, the practical minimum is:
+
+- MVDSV: required (server daemon)
+- KTX: required in this build model (server game logic and configs)
+- nQuake distfiles content: required (maps/assets/runtime files)
+
+Usually optional but strongly recommended:
+
+- QWFWD: optional (network forwarding/proxy)
+- QTV: optional (spectator relay)
+
+In short: your current component set is already enough for a modern deploy.
+Additional components are mostly operational add-ons (spectating, networking,
+monitoring), not hard requirements for basic server functionality.
 
 ## Upstream version status
 
@@ -29,6 +52,7 @@ This section is automatically updated by the build workflow on each run.
 | MVDSV | pending | pending | pending |
 | KTX | pending | pending | pending |
 | QWFWD | pending | pending | pending |
+| QTV | pending | pending | pending |
 
 Last refreshed (UTC): pending
 <!-- END AUTO-UPDATED UPSTREAM STATUS -->
@@ -51,6 +75,7 @@ and checksum.
    - MVDSV (`QW-Group/mvdsv` latest release)
    - KTX (`QW-Group/ktx` latest release)
    - QWFWD (`QW-Group/qwfwd` latest release)
+  - QTV (`QW-Group/qtv` latest commit, because no latest release endpoint is available)
 2. Downloads the current QuakeWorld server distfiles from the
    `nQuake/distfiles` `snapshot` release.
 3. Extracts and re-packs them into the flat archive layout LinuxGSM expects.
@@ -95,7 +120,8 @@ its `install_server_files.sh` module.
 ## Current source of truth
 
 - Bundle contents come from `https://github.com/nQuake/distfiles/releases/tag/snapshot`
-- Release notes record the latest MVDSV, KTX, and QWFWD release tags for
+- Release notes record the latest MVDSV, KTX, and QWFWD release tags plus the
+  latest QTV commit reference for
   traceability
 
 ## Practical use

@@ -31,6 +31,10 @@ jobs:
           QWFWD_TAG=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.tag_name')
           QWFWD_DATE=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.published_at')
           QWFWD_URL=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.html_url')
+          QTV_SHA=$(gh api repos/QW-Group/qtv/commits --jq '.[0].sha')
+          QTV_DATE=$(gh api repos/QW-Group/qtv/commits --jq '.[0].commit.author.date')
+          QTV_URL=$(gh api repos/QW-Group/qtv/commits --jq '.[0].html_url')
+          QTV_SHORT_SHA=${QTV_SHA:0:12}
 
           BUILD_DATE=$(date -u +%Y%m%d)
           RELEASE_TAG="build-${BUILD_DATE}"
@@ -47,6 +51,9 @@ jobs:
           echo "qwfwd=${QWFWD_TAG}" >> "$GITHUB_OUTPUT"
           echo "qwfwd_date=${QWFWD_DATE}" >> "$GITHUB_OUTPUT"
           echo "qwfwd_url=${QWFWD_URL}" >> "$GITHUB_OUTPUT"
+          echo "qtv=${QTV_SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "qtv_date=${QTV_DATE}" >> "$GITHUB_OUTPUT"
+          echo "qtv_url=${QTV_URL}" >> "$GITHUB_OUTPUT"
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "output=${OUTPUT}" >> "$GITHUB_OUTPUT"
@@ -59,6 +66,8 @@ jobs:
           echo "KTX date: ${KTX_DATE}"
           echo "QWFWD: ${QWFWD_TAG}"
           echo "QWFWD date: ${QWFWD_DATE}"
+          echo "QTV commit: ${QTV_SHORT_SHA}"
+          echo "QTV date: ${QTV_DATE}"
 
       - name: Update README upstream status
         run: |
@@ -73,10 +82,14 @@ jobs:
           QWFWD_TAG='${{ steps.versions.outputs.qwfwd }}'
           QWFWD_DATE_RAW='${{ steps.versions.outputs.qwfwd_date }}'
           QWFWD_URL='${{ steps.versions.outputs.qwfwd_url }}'
+          QTV_REF='${{ steps.versions.outputs.qtv }}'
+          QTV_DATE_RAW='${{ steps.versions.outputs.qtv_date }}'
+          QTV_URL='${{ steps.versions.outputs.qtv_url }}'
 
           MVD_DATE="${MVD_DATE_RAW%%T*}"
           KTX_DATE="${KTX_DATE_RAW%%T*}"
           QWFWD_DATE="${QWFWD_DATE_RAW%%T*}"
+          QTV_DATE="${QTV_DATE_RAW%%T*}"
           REFRESHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           {
@@ -85,6 +98,7 @@ jobs:
             printf '| MVDSV | %s | %s | [release](%s) |\n' "$MVD_TAG" "$MVD_DATE" "$MVD_URL"
             printf '| KTX | %s | %s | [release](%s) |\n' "$KTX_TAG" "$KTX_DATE" "$KTX_URL"
             printf '| QWFWD | %s | %s | [release](%s) |\n' "$QWFWD_TAG" "$QWFWD_DATE" "$QWFWD_URL"
+            printf '| QTV | %s | %s | [commit](%s) |\n' "$QTV_REF" "$QTV_DATE" "$QTV_URL"
             printf '\n'
             printf 'Last refreshed (UTC): %s\n' "$REFRESHED_AT"
           } > /tmp/readme-upstream-status.md
@@ -194,6 +208,7 @@ jobs:
           - MVDSV: ${{ steps.versions.outputs.mvdsv }} (${{ steps.versions.outputs.mvdsv_date }})
           - KTX: ${{ steps.versions.outputs.ktx }} (${{ steps.versions.outputs.ktx_date }})
           - QWFWD: ${{ steps.versions.outputs.qwfwd }} (${{ steps.versions.outputs.qwfwd_date }})
+          - QTV commit: ${{ steps.versions.outputs.qtv }} (${{ steps.versions.outputs.qtv_date }})
 
           Source distfiles:
           - https://github.com/nQuake/distfiles/releases/tag/snapshot
@@ -214,6 +229,7 @@ jobs:
           - MVDSV: ${{ steps.versions.outputs.mvdsv }} (${{ steps.versions.outputs.mvdsv_date }})
           - KTX: ${{ steps.versions.outputs.ktx }} (${{ steps.versions.outputs.ktx_date }})
           - QWFWD: ${{ steps.versions.outputs.qwfwd }} (${{ steps.versions.outputs.qwfwd_date }})
+          - QTV commit: ${{ steps.versions.outputs.qtv }} (${{ steps.versions.outputs.qtv_date }})
 
           Source distfiles:
           - https://github.com/nQuake/distfiles/releases/tag/snapshot
