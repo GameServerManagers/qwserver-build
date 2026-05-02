@@ -23,8 +23,14 @@ jobs:
           set -euo pipefail
 
           MVD_TAG=$(gh api repos/QW-Group/mvdsv/releases/latest --jq '.tag_name')
+          MVD_DATE=$(gh api repos/QW-Group/mvdsv/releases/latest --jq '.published_at')
+          MVD_URL=$(gh api repos/QW-Group/mvdsv/releases/latest --jq '.html_url')
           KTX_TAG=$(gh api repos/QW-Group/ktx/releases/latest --jq '.tag_name')
+          KTX_DATE=$(gh api repos/QW-Group/ktx/releases/latest --jq '.published_at')
+          KTX_URL=$(gh api repos/QW-Group/ktx/releases/latest --jq '.html_url')
           QWFWD_TAG=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.tag_name')
+          QWFWD_DATE=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.published_at')
+          QWFWD_URL=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.html_url')
 
           BUILD_DATE=$(date -u +%Y%m%d)
           RELEASE_TAG="build-${BUILD_DATE}"
@@ -33,8 +39,14 @@ jobs:
           LATEST_OUTPUT="nquake.server.linux.latest.full.tar.xz"
 
           echo "mvdsv=${MVD_TAG}" >> "$GITHUB_OUTPUT"
+          echo "mvdsv_date=${MVD_DATE}" >> "$GITHUB_OUTPUT"
+          echo "mvdsv_url=${MVD_URL}" >> "$GITHUB_OUTPUT"
           echo "ktx=${KTX_TAG}" >> "$GITHUB_OUTPUT"
+          echo "ktx_date=${KTX_DATE}" >> "$GITHUB_OUTPUT"
+          echo "ktx_url=${KTX_URL}" >> "$GITHUB_OUTPUT"
           echo "qwfwd=${QWFWD_TAG}" >> "$GITHUB_OUTPUT"
+          echo "qwfwd_date=${QWFWD_DATE}" >> "$GITHUB_OUTPUT"
+          echo "qwfwd_url=${QWFWD_URL}" >> "$GITHUB_OUTPUT"
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "output=${OUTPUT}" >> "$GITHUB_OUTPUT"
@@ -42,8 +54,75 @@ jobs:
           echo "latest_output=${LATEST_OUTPUT}" >> "$GITHUB_OUTPUT"
 
           echo "MVDSV: ${MVD_TAG}"
+          echo "MVDSV date: ${MVD_DATE}"
           echo "KTX: ${KTX_TAG}"
+          echo "KTX date: ${KTX_DATE}"
           echo "QWFWD: ${QWFWD_TAG}"
+          echo "QWFWD date: ${QWFWD_DATE}"
+
+      - name: Update README upstream status
+        run: |
+          set -euo pipefail
+
+          MVD_TAG='${{ steps.versions.outputs.mvdsv }}'
+          MVD_DATE_RAW='${{ steps.versions.outputs.mvdsv_date }}'
+          MVD_URL='${{ steps.versions.outputs.mvdsv_url }}'
+          KTX_TAG='${{ steps.versions.outputs.ktx }}'
+          KTX_DATE_RAW='${{ steps.versions.outputs.ktx_date }}'
+          KTX_URL='${{ steps.versions.outputs.ktx_url }}'
+          QWFWD_TAG='${{ steps.versions.outputs.qwfwd }}'
+          QWFWD_DATE_RAW='${{ steps.versions.outputs.qwfwd_date }}'
+          QWFWD_URL='${{ steps.versions.outputs.qwfwd_url }}'
+
+          MVD_DATE="${MVD_DATE_RAW%%T*}"
+          KTX_DATE="${KTX_DATE_RAW%%T*}"
+          QWFWD_DATE="${QWFWD_DATE_RAW%%T*}"
+          REFRESHED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          {
+            printf '%s\n' '| Component | Version | Release date (UTC) | Upstream release |'
+            printf '%s\n' '| --- | --- | --- | --- |'
+            printf '| MVDSV | %s | %s | [release](%s) |\n' "$MVD_TAG" "$MVD_DATE" "$MVD_URL"
+            printf '| KTX | %s | %s | [release](%s) |\n' "$KTX_TAG" "$KTX_DATE" "$KTX_URL"
+            printf '| QWFWD | %s | %s | [release](%s) |\n' "$QWFWD_TAG" "$QWFWD_DATE" "$QWFWD_URL"
+            printf '\n'
+            printf 'Last refreshed (UTC): %s\n' "$REFRESHED_AT"
+          } > /tmp/readme-upstream-status.md
+
+          awk '
+            BEGIN { in_block=0 }
+            /<!-- BEGIN AUTO-UPDATED UPSTREAM STATUS -->/ {
+              print
+              while ((getline line < "/tmp/readme-upstream-status.md") > 0) print line
+              in_block=1
+              next
+            }
+            /<!-- END AUTO-UPDATED UPSTREAM STATUS -->/ {
+              in_block=0
+              print
+              next
+            }
+            !in_block { print }
+          ' README.md > README.md.new
+
+          mv README.md.new README.md
+
+      - name: Commit README updates
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- README.md; then
+            echo "README unchanged; skipping commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: update upstream component versions in README"
+          git push origin "${GITHUB_REF_NAME}"
 
       - name: Download nQuake distfiles snapshot assets
         run: |
@@ -112,9 +191,9 @@ jobs:
           Build date: ${{ steps.versions.outputs.build_date }}
 
           Upstream reference versions:
-          - MVDSV: ${{ steps.versions.outputs.mvdsv }}
-          - KTX: ${{ steps.versions.outputs.ktx }}
-          - QWFWD: ${{ steps.versions.outputs.qwfwd }}
+          - MVDSV: ${{ steps.versions.outputs.mvdsv }} (${{ steps.versions.outputs.mvdsv_date }})
+          - KTX: ${{ steps.versions.outputs.ktx }} (${{ steps.versions.outputs.ktx_date }})
+          - QWFWD: ${{ steps.versions.outputs.qwfwd }} (${{ steps.versions.outputs.qwfwd_date }})
 
           Source distfiles:
           - https://github.com/nQuake/distfiles/releases/tag/snapshot
@@ -132,9 +211,9 @@ jobs:
           Refreshed from the scheduled build on ${{ steps.versions.outputs.build_date }}.
 
           Upstream reference versions:
-          - MVDSV: ${{ steps.versions.outputs.mvdsv }}
-          - KTX: ${{ steps.versions.outputs.ktx }}
-          - QWFWD: ${{ steps.versions.outputs.qwfwd }}
+          - MVDSV: ${{ steps.versions.outputs.mvdsv }} (${{ steps.versions.outputs.mvdsv_date }})
+          - KTX: ${{ steps.versions.outputs.ktx }} (${{ steps.versions.outputs.ktx_date }})
+          - QWFWD: ${{ steps.versions.outputs.qwfwd }} (${{ steps.versions.outputs.qwfwd_date }})
 
           Source distfiles:
           - https://github.com/nQuake/distfiles/releases/tag/snapshot

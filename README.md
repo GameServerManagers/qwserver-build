@@ -4,6 +4,35 @@ Automated GitHub Actions build that assembles a LinuxGSM-ready QuakeWorld
 server bundle from the current nQuake distfiles snapshot and publishes both a
 dated release and a moving `latest` release.
 
+## Upstream components in this bundle
+
+- [MVDSV](https://github.com/QW-Group/mvdsv)
+  - QuakeWorld dedicated server binary used to run the game server process.
+- [KTX](https://github.com/QW-Group/ktx)
+  - Server-side game logic (`qwprogs.so`), configs, and gameplay extensions
+    used by modern QuakeWorld servers.
+- [QWFWD](https://github.com/QW-Group/qwfwd)
+  - QuakeWorld network forwarder/proxy binary commonly used alongside servers
+    to improve routing and connectivity.
+
+These are packaged together because LinuxGSM expects one installable server
+bundle that contains the core daemon plus the typical competitive QW runtime
+files and tooling.
+
+## Upstream version status
+
+This section is automatically updated by the build workflow on each run.
+
+<!-- BEGIN AUTO-UPDATED UPSTREAM STATUS -->
+| Component | Version | Release date (UTC) | Upstream release |
+| --- | --- | --- | --- |
+| MVDSV | pending | pending | pending |
+| KTX | pending | pending | pending |
+| QWFWD | pending | pending | pending |
+
+Last refreshed (UTC): pending
+<!-- END AUTO-UPDATED UPSTREAM STATUS -->
+
 ## Why this exists
 
 LinuxGSM `qwserver` is still pinned to the legacy archive:
