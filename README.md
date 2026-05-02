@@ -25,25 +25,6 @@ These are packaged together to create one installable server
 bundle that contains the core daemon plus the typical competitive QW runtime
 files and tooling.
 
-## QuakeWorld clients
-
-This repository builds the **server** side only. Players need a separate
-QuakeWorld client to connect and play. The most common options in 2026 are:
-
-- [ezQuake](https://github.com/QW-Group/ezquake-source)
-  - The dominant modern QuakeWorld client. Actively maintained, feature-rich
-    HUD, built-in browser, demo playback, cross-platform. Most competitive
-    players and pick-up game (PUG) communities use this.
-- [FTE QuakeWorld (FTEQW)](https://fte.triptohell.info/)
-  - A highly capable alternative client with extended rendering and modding
-    features. Compatible with QuakeWorld servers and supports a wider range of
-    Quake engine extensions.
-- [nQuake](https://nquake.com/)
-  - A ready-to-play installer for Windows and Linux that bundles ezQuake with
-    configs, maps, and sensible defaults. The easiest starting point for new
-    players. Uses the same nQuake distfiles content that this repository
-    packages for the server side.
-
 ## Upstream version status
 
 This section is automatically updated by the build workflow on each run.
@@ -94,3 +75,22 @@ Last refreshed (UTC): 2026-05-02T22:08:06Z
 - Checksums:
   - `MD5SUMS`
   - `SHA256SUMS`
+
+## QuakeWorld clients
+
+This repository builds the **server** side only. Players need a separate
+QuakeWorld client to connect and play. The most common options in 2026 are:
+
+- [ezQuake](https://github.com/QW-Group/ezquake-source)
+  - The dominant modern QuakeWorld client. Actively maintained, feature-rich
+    HUD, built-in browser, demo playback, cross-platform. Most competitive
+    players and pick-up game (PUG) communities use this.
+- [FTE QuakeWorld (FTEQW)](https://fte.triptohell.info/)
+  - A highly capable alternative client with extended rendering and modding
+    features. Compatible with QuakeWorld servers and supports a wider range of
+    Quake engine extensions.
+- [nQuake](https://nquake.com/)
+  - A ready-to-play installer for Windows and Linux that bundles ezQuake with
+    configs, maps, and sensible defaults. The easiest starting point for new
+    players. Uses the same nQuake distfiles content that this repository
+    packages for the server side.
