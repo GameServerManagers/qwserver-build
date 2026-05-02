@@ -29,6 +29,8 @@ jobs:
           BUILD_DATE=$(date -u +%Y%m%d)
           RELEASE_TAG="build-${BUILD_DATE}"
           OUTPUT="nquake.server.linux.${BUILD_DATE}.full.tar.xz"
+          LATEST_TAG="latest"
+          LATEST_OUTPUT="nquake.server.linux.latest.full.tar.xz"
 
           echo "mvdsv=${MVD_TAG}" >> "$GITHUB_OUTPUT"
           echo "ktx=${KTX_TAG}" >> "$GITHUB_OUTPUT"
@@ -36,29 +38,14 @@ jobs:
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
           echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "output=${OUTPUT}" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "latest_output=${LATEST_OUTPUT}" >> "$GITHUB_OUTPUT"
 
           echo "MVDSV: ${MVD_TAG}"
           echo "KTX: ${KTX_TAG}"
           echo "QWFWD: ${QWFWD_TAG}"
 
-      - name: Skip if release already exists
-        id: release_check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          TAG="${{ steps.versions.outputs.release_tag }}"
-          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG already exists."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Release $TAG does not exist."
-          fi
-
       - name: Download nQuake distfiles snapshot assets
-        if: steps.release_check.outputs.exists == 'false'
         run: |
           set -euo pipefail
 
@@ -78,11 +65,11 @@ jobs:
           done
 
       - name: Build LinuxGSM archive
-        if: steps.release_check.outputs.exists == 'false'
         run: |
           set -euo pipefail
 
           OUTPUT="${{ steps.versions.outputs.output }}"
+          LATEST_OUTPUT="${{ steps.versions.outputs.latest_output }}"
 
           mkdir -p build/server
           for zip in downloads/*.zip; do
@@ -106,17 +93,20 @@ jobs:
           [[ -f build/server/qwfwd/qwfwd.bin ]] && chmod +x build/server/qwfwd/qwfwd.bin || true
 
           tar cJf "$OUTPUT" -C build/server .
-          sha256sum "$OUTPUT" > SHA256SUMS
+          cp "$OUTPUT" "$LATEST_OUTPUT"
+
+          md5sum "$OUTPUT" "$LATEST_OUTPUT" > MD5SUMS
+          sha256sum "$OUTPUT" "$LATEST_OUTPUT" > SHA256SUMS
 
           echo "Created $OUTPUT"
-          ls -lh "$OUTPUT" SHA256SUMS
+          echo "Created $LATEST_OUTPUT"
+          ls -lh "$OUTPUT" "$LATEST_OUTPUT" MD5SUMS SHA256SUMS
 
       - name: Create release notes
-        if: steps.release_check.outputs.exists == 'false'
         run: |
           set -euo pipefail
 
-          cat > release-notes.md <<EOF
+          cat > release-notes-dated.md <<EOF
           ## QuakeWorld server bundle for LinuxGSM
 
           Build date: ${{ steps.versions.outputs.build_date }}
@@ -131,18 +121,82 @@ jobs:
 
           Files:
           - ${{ steps.versions.outputs.output }}
+          - ${{ steps.versions.outputs.latest_output }}
+          - MD5SUMS
           - SHA256SUMS
           EOF
 
-      - name: Publish GitHub release
-        if: steps.release_check.outputs.exists == 'false'
+          cat > release-notes-latest.md <<EOF
+          ## Latest QuakeWorld server bundle for LinuxGSM
+
+          Refreshed from the scheduled build on ${{ steps.versions.outputs.build_date }}.
+
+          Upstream reference versions:
+          - MVDSV: ${{ steps.versions.outputs.mvdsv }}
+          - KTX: ${{ steps.versions.outputs.ktx }}
+          - QWFWD: ${{ steps.versions.outputs.qwfwd }}
+
+          Source distfiles:
+          - https://github.com/nQuake/distfiles/releases/tag/snapshot
+
+          Stable file:
+          - ${{ steps.versions.outputs.latest_output }}
+
+          Checksums:
+          - MD5SUMS
+          - SHA256SUMS
+          EOF
+
+      - name: Publish dated GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          gh release create "${{ steps.versions.outputs.release_tag }}" \
-            --title "QuakeWorld bundle ${{ steps.versions.outputs.build_date }}" \
-            --notes-file release-notes.md \
+          TAG="${{ steps.versions.outputs.release_tag }}"
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "QuakeWorld bundle ${{ steps.versions.outputs.build_date }}" \
+              --notes-file release-notes-dated.md
+          else
+            gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "QuakeWorld bundle ${{ steps.versions.outputs.build_date }}" \
+              --notes-file release-notes-dated.md
+          fi
+
+          gh release upload "$TAG" \
+            --repo "${{ github.repository }}" \
+            --clobber \
             "${{ steps.versions.outputs.output }}" \
+            MD5SUMS \
+            SHA256SUMS
+
+      - name: Publish moving latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TAG="${{ steps.versions.outputs.latest_tag }}"
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "QuakeWorld bundle latest" \
+              --notes-file release-notes-latest.md
+          else
+            gh release create "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "QuakeWorld bundle latest" \
+              --notes-file release-notes-latest.md
+          fi
+
+          gh release upload "$TAG" \
+            --repo "${{ github.repository }}" \
+            --clobber \
+            "${{ steps.versions.outputs.latest_output }}" \
+            MD5SUMS \
             SHA256SUMS
