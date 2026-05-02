@@ -25,8 +25,24 @@ These are packaged together to create one installable server
 bundle that contains the core daemon plus the typical competitive QW runtime
 files and tooling.
 
-## Quake World Clients
+## QuakeWorld clients
 
+This repository builds the **server** side only. Players need a separate
+QuakeWorld client to connect and play. The most common options in 2026 are:
+
+- [ezQuake](https://github.com/QW-Group/ezquake-source)
+  - The dominant modern QuakeWorld client. Actively maintained, feature-rich
+    HUD, built-in browser, demo playback, cross-platform. Most competitive
+    players and pick-up game (PUG) communities use this.
+- [FTE QuakeWorld (FTEQW)](https://fte.triptohell.info/)
+  - A highly capable alternative client with extended rendering and modding
+    features. Compatible with QuakeWorld servers and supports a wider range of
+    Quake engine extensions.
+- [nQuake](https://nquake.com/)
+  - A ready-to-play installer for Windows and Linux that bundles ezQuake with
+    configs, maps, and sensible defaults. The easiest starting point for new
+    players. Uses the same nQuake distfiles content that this repository
+    packages for the server side.
 
 ## Upstream version status
 
@@ -39,6 +55,7 @@ This section is automatically updated by the build workflow on each run.
 | KTX | 1.46 | 2025-09-14 | [release](https://github.com/QW-Group/ktx/releases/tag/1.46) |
 | QWFWD | 1.30 | 2025-02-25 | [release](https://github.com/QW-Group/qwfwd/releases/tag/1.30) |
 | QTV | 152a43dadb95 | 2026-03-02 | [commit](https://github.com/QW-Group/qtv/commit/152a43dadb959f8c36de55c5b3b23d0431c9c344) |
+| nQuake distfiles | snapshot | 2026-02-28 | [release](https://github.com/nQuake/distfiles/releases/tag/snapshot) |
 
 Last refreshed (UTC): 2026-05-02T22:08:06Z
 <!-- END AUTO-UPDATED UPSTREAM STATUS -->
