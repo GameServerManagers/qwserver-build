@@ -195,6 +195,89 @@ jobs:
           echo "Created $LATEST_OUTPUT"
           ls -lh "$OUTPUT" "$LATEST_OUTPUT" MD5SUMS SHA256SUMS
 
+      - name: Compare distfiles components with upstream
+        run: |
+          set -euo pipefail
+
+          to_epoch() {
+            local input="$1"
+            date -u -d "$input" +%s 2>/dev/null || echo 0
+          }
+
+          file_epoch() {
+            local file="$1"
+            if [[ -f "$file" ]]; then
+              stat -c %Y "$file"
+            else
+              echo 0
+            fi
+          }
+
+          file_date_utc() {
+            local file="$1"
+            if [[ -f "$file" ]]; then
+              date -u -d "@$(stat -c %Y "$file")" +%Y-%m-%dT%H:%M:%SZ
+            else
+              echo "missing"
+            fi
+          }
+
+          compare_status() {
+            local dist_epoch="$1"
+            local upstream_epoch="$2"
+
+            if [[ "$dist_epoch" -eq 0 ]]; then
+              echo "missing in distfiles"
+            elif [[ "$upstream_epoch" -eq 0 ]]; then
+              echo "upstream date unavailable"
+            elif [[ "$dist_epoch" -ge "$upstream_epoch" ]]; then
+              echo "up-to-date or newer (by date)"
+            else
+              echo "older than upstream (by date)"
+            fi
+          }
+
+          MVD_UPSTREAM_VERSION='${{ steps.versions.outputs.mvdsv }}'
+          MVD_UPSTREAM_DATE='${{ steps.versions.outputs.mvdsv_date }}'
+          KTX_UPSTREAM_VERSION='${{ steps.versions.outputs.ktx }}'
+          KTX_UPSTREAM_DATE='${{ steps.versions.outputs.ktx_date }}'
+          QWFWD_UPSTREAM_VERSION='${{ steps.versions.outputs.qwfwd }}'
+          QWFWD_UPSTREAM_DATE='${{ steps.versions.outputs.qwfwd_date }}'
+          QTV_UPSTREAM_VERSION='${{ steps.versions.outputs.qtv }}'
+          QTV_UPSTREAM_DATE='${{ steps.versions.outputs.qtv_date }}'
+
+          MVD_FILE='build/server/mvdsv'
+          KTX_FILE='build/server/ktx/qwprogs.so'
+          QWFWD_FILE='build/server/qwfwd/qwfwd.bin'
+          QTV_FILE='build/server/qtv/qtv.bin'
+
+          MVD_DIST_EPOCH=$(file_epoch "$MVD_FILE")
+          KTX_DIST_EPOCH=$(file_epoch "$KTX_FILE")
+          QWFWD_DIST_EPOCH=$(file_epoch "$QWFWD_FILE")
+          QTV_DIST_EPOCH=$(file_epoch "$QTV_FILE")
+
+          MVD_UPSTREAM_EPOCH=$(to_epoch "$MVD_UPSTREAM_DATE")
+          KTX_UPSTREAM_EPOCH=$(to_epoch "$KTX_UPSTREAM_DATE")
+          QWFWD_UPSTREAM_EPOCH=$(to_epoch "$QWFWD_UPSTREAM_DATE")
+          QTV_UPSTREAM_EPOCH=$(to_epoch "$QTV_UPSTREAM_DATE")
+
+          {
+            echo "## Distfiles vs Upstream Component Comparison"
+            echo
+            echo "Comparison method: file timestamp in distfiles versus upstream release/commit timestamp."
+            echo
+            echo "| Component | Distfiles file | Distfiles timestamp (UTC) | Upstream version/ref | Upstream timestamp (UTC) | Status |"
+            echo "| --- | --- | --- | --- | --- | --- |"
+            printf '| MVDSV | `%s` | %s | %s | %s | %s |\n' "$MVD_FILE" "$(file_date_utc "$MVD_FILE")" "$MVD_UPSTREAM_VERSION" "$MVD_UPSTREAM_DATE" "$(compare_status "$MVD_DIST_EPOCH" "$MVD_UPSTREAM_EPOCH")"
+            printf '| KTX | `%s` | %s | %s | %s | %s |\n' "$KTX_FILE" "$(file_date_utc "$KTX_FILE")" "$KTX_UPSTREAM_VERSION" "$KTX_UPSTREAM_DATE" "$(compare_status "$KTX_DIST_EPOCH" "$KTX_UPSTREAM_EPOCH")"
+            printf '| QWFWD | `%s` | %s | %s | %s | %s |\n' "$QWFWD_FILE" "$(file_date_utc "$QWFWD_FILE")" "$QWFWD_UPSTREAM_VERSION" "$QWFWD_UPSTREAM_DATE" "$(compare_status "$QWFWD_DIST_EPOCH" "$QWFWD_UPSTREAM_EPOCH")"
+            printf '| QTV | `%s` | %s | %s | %s | %s |\n' "$QTV_FILE" "$(file_date_utc "$QTV_FILE")" "$QTV_UPSTREAM_VERSION" "$QTV_UPSTREAM_DATE" "$(compare_status "$QTV_DIST_EPOCH" "$QTV_UPSTREAM_EPOCH")"
+            echo
+            echo "Note: this is a timestamp-based check. It does not prove binary equality with upstream releases."
+          } | tee /tmp/component-comparison.md
+
+          cat /tmp/component-comparison.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create release notes
         run: |
           set -euo pipefail

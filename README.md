@@ -25,6 +25,22 @@ These are packaged together to create one installable server
 bundle that contains the core daemon plus the typical competitive QW runtime
 files and tooling.
 
+## Glossary (quick)
+
+- nQuake
+  - A QuakeWorld distribution bundle used here as the source of server
+    distfiles (binaries, configs, maps, and assets).
+- ezQuake
+  - A QuakeWorld client used by players to connect and play.
+- MVDSV
+  - The dedicated QuakeWorld server process.
+- KTX
+  - Server-side game logic and competitive config/mode ecosystem.
+- QWFWD
+  - A forwarding/proxy component to help network paths and connectivity.
+- QTV
+  - A spectator relay service for broadcasts and public viewing.
+
 ## What you actually need
 
 For a working modern QuakeWorld server, the practical minimum is:
@@ -71,21 +87,23 @@ and checksum.
 
 ## What the workflow does
 
-1. Reads upstream reference versions for:
-   - MVDSV (`QW-Group/mvdsv` latest release)
-   - KTX (`QW-Group/ktx` latest release)
-   - QWFWD (`QW-Group/qwfwd` latest release)
+- Reads upstream references:
+  - MVDSV (`QW-Group/mvdsv` latest release)
+  - KTX (`QW-Group/ktx` latest release)
+  - QWFWD (`QW-Group/qwfwd` latest release)
   - QTV (`QW-Group/qtv` latest commit, because no latest release endpoint is available)
-2. Downloads the current QuakeWorld server distfiles from the
-   `nQuake/distfiles` `snapshot` release.
-3. Extracts and re-packs them into the flat archive layout LinuxGSM expects.
-4. Produces two bundle names:
-   - `nquake.server.linux.<YYYYMMDD>.full.tar.xz`
-   - `nquake.server.linux.latest.full.tar.xz`
-5. Produces both `MD5SUMS` and `SHA256SUMS`.
-6. Publishes:
-   - a dated GitHub release tagged `build-<YYYYMMDD>`
-   - a moving GitHub release tagged `latest`
+- Downloads the current QuakeWorld server distfiles from
+  `nQuake/distfiles` `snapshot`.
+- Extracts and re-packs them into the flat archive layout LinuxGSM expects.
+- Produces two bundle names:
+  - `nquake.server.linux.<YYYYMMDD>.full.tar.xz`
+  - `nquake.server.linux.latest.full.tar.xz`
+- Produces both `MD5SUMS` and `SHA256SUMS`.
+- Generates a build comparison table in the GitHub Actions job summary,
+  comparing distfiles timestamps versus upstream release/commit timestamps.
+- Publishes:
+  - a dated GitHub release tagged `build-<YYYYMMDD>`
+  - a moving GitHub release tagged `latest`
 
 ## Schedule
 
