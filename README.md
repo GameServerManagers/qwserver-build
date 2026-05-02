@@ -65,12 +65,12 @@ This section is automatically updated by the build workflow on each run.
 <!-- BEGIN AUTO-UPDATED UPSTREAM STATUS -->
 | Component | Version | Release date (UTC) | Upstream release |
 | --- | --- | --- | --- |
-| MVDSV | pending | pending | pending |
-| KTX | pending | pending | pending |
-| QWFWD | pending | pending | pending |
-| QTV | pending | pending | pending |
+| MVDSV | 1.11 | 2025-02-27 | [release](https://github.com/QW-Group/mvdsv/releases/tag/1.11) |
+| KTX | 1.46 | 2025-09-14 | [release](https://github.com/QW-Group/ktx/releases/tag/1.46) |
+| QWFWD | 1.30 | 2025-02-25 | [release](https://github.com/QW-Group/qwfwd/releases/tag/1.30) |
+| QTV | 152a43dadb95 | 2026-03-02 | [commit](https://github.com/QW-Group/qtv/commit/152a43dadb959f8c36de55c5b3b23d0431c9c344) |
 
-Last refreshed (UTC): pending
+Last refreshed (UTC): 2026-05-02T21:38:16Z
 <!-- END AUTO-UPDATED UPSTREAM STATUS -->
 
 ## Why this exists
