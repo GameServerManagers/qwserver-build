@@ -1,0 +1,148 @@
+name: Build QuakeWorld Server Bundle for LinuxGSM
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Collect upstream versions
+        id: versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          MVD_TAG=$(gh api repos/QW-Group/mvdsv/releases/latest --jq '.tag_name')
+          KTX_TAG=$(gh api repos/QW-Group/ktx/releases/latest --jq '.tag_name')
+          QWFWD_TAG=$(gh api repos/QW-Group/qwfwd/releases/latest --jq '.tag_name')
+
+          BUILD_DATE=$(date -u +%Y%m%d)
+          RELEASE_TAG="build-${BUILD_DATE}"
+          OUTPUT="nquake.server.linux.${BUILD_DATE}.full.tar.xz"
+
+          echo "mvdsv=${MVD_TAG}" >> "$GITHUB_OUTPUT"
+          echo "ktx=${KTX_TAG}" >> "$GITHUB_OUTPUT"
+          echo "qwfwd=${QWFWD_TAG}" >> "$GITHUB_OUTPUT"
+          echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "output=${OUTPUT}" >> "$GITHUB_OUTPUT"
+
+          echo "MVDSV: ${MVD_TAG}"
+          echo "KTX: ${KTX_TAG}"
+          echo "QWFWD: ${QWFWD_TAG}"
+
+      - name: Skip if release already exists
+        id: release_check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TAG="${{ steps.versions.outputs.release_tag }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG does not exist."
+          fi
+
+      - name: Download nQuake distfiles snapshot assets
+        if: steps.release_check.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+
+          BASE="https://github.com/nQuake/distfiles/releases/download/snapshot"
+          mkdir -p downloads
+
+          for file in \
+            sv-bin-x64.zip \
+            sv-configs.zip \
+            sv-maps.zip \
+            sv-maps-gpl.zip \
+            sv-gpl.zip \
+            sv-non-gpl.zip
+          do
+            echo "Downloading $file"
+            curl -fsSL -o "downloads/$file" "$BASE/$file"
+          done
+
+      - name: Build LinuxGSM archive
+        if: steps.release_check.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+
+          OUTPUT="${{ steps.versions.outputs.output }}"
+
+          mkdir -p build/server
+          for zip in downloads/*.zip; do
+            unzip -qo "$zip" -d build/server
+          done
+
+          if [[ ! -f build/server/mvdsv ]]; then
+            echo "::error::mvdsv binary not found after extraction"
+            find build/server -maxdepth 3 -type f | sort
+            exit 1
+          fi
+
+          if [[ ! -f build/server/ktx/qwprogs.so ]]; then
+            echo "::error::ktx/qwprogs.so not found after extraction"
+            find build/server -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          chmod +x build/server/mvdsv || true
+          [[ -f build/server/qtv/qtv.bin ]] && chmod +x build/server/qtv/qtv.bin || true
+          [[ -f build/server/qwfwd/qwfwd.bin ]] && chmod +x build/server/qwfwd/qwfwd.bin || true
+
+          tar cJf "$OUTPUT" -C build/server .
+          sha256sum "$OUTPUT" > SHA256SUMS
+
+          echo "Created $OUTPUT"
+          ls -lh "$OUTPUT" SHA256SUMS
+
+      - name: Create release notes
+        if: steps.release_check.outputs.exists == 'false'
+        run: |
+          set -euo pipefail
+
+          cat > release-notes.md <<EOF
+          ## QuakeWorld server bundle for LinuxGSM
+
+          Build date: ${{ steps.versions.outputs.build_date }}
+
+          Upstream reference versions:
+          - MVDSV: ${{ steps.versions.outputs.mvdsv }}
+          - KTX: ${{ steps.versions.outputs.ktx }}
+          - QWFWD: ${{ steps.versions.outputs.qwfwd }}
+
+          Source distfiles:
+          - https://github.com/nQuake/distfiles/releases/tag/snapshot
+
+          Files:
+          - ${{ steps.versions.outputs.output }}
+          - SHA256SUMS
+          EOF
+
+      - name: Publish GitHub release
+        if: steps.release_check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh release create "${{ steps.versions.outputs.release_tag }}" \
+            --title "QuakeWorld bundle ${{ steps.versions.outputs.build_date }}" \
+            --notes-file release-notes.md \
+            "${{ steps.versions.outputs.output }}" \
+            SHA256SUMS
