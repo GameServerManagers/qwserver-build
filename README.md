@@ -40,7 +40,7 @@ This section is automatically updated by the build workflow on each run.
 | QWFWD | 1.30 | 2025-02-25 | [release](https://github.com/QW-Group/qwfwd/releases/tag/1.30) |
 | QTV | 152a43dadb95 | 2026-03-02 | [commit](https://github.com/QW-Group/qtv/commit/152a43dadb959f8c36de55c5b3b23d0431c9c344) |
 
-Last refreshed (UTC): 2026-05-02T21:38:16Z
+Last refreshed (UTC): 2026-05-02T22:08:06Z
 <!-- END AUTO-UPDATED UPSTREAM STATUS -->
 
 ## What the workflow does
