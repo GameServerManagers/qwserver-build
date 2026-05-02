@@ -199,81 +199,79 @@ jobs:
         run: |
           set -euo pipefail
 
-          to_epoch() {
-            local input="$1"
-            date -u -d "$input" +%s 2>/dev/null || echo 0
-          }
+          # Extract version embedded in each distfiles binary using strings.
+          # No execution of server binaries - strings-only for CI safety.
+          DIST_MVD_VER=$(strings build/server/mvdsv \
+            | grep -oE "^MVDSV [0-9]+\.[0-9]+[^ ]*$" | head -1 | sed 's/MVDSV //' || echo "unknown")
 
-          file_epoch() {
-            local file="$1"
-            if [[ -f "$file" ]]; then
-              stat -c %Y "$file"
-            else
-              echo 0
-            fi
-          }
+          # KTX embeds its version as the first bare semver string in qwprogs.so
+          DIST_KTX_VER=$(strings build/server/ktx/qwprogs.so \
+            | grep -E "^[0-9]+\.[0-9]+$" | head -1 || echo "unknown")
 
-          file_date_utc() {
-            local file="$1"
-            if [[ -f "$file" ]]; then
-              date -u -d "@$(stat -c %Y "$file")" +%Y-%m-%dT%H:%M:%SZ
-            else
-              echo "missing"
-            fi
-          }
+          DIST_QWFWD_VER=$(strings build/server/qwfwd/qwfwd.bin \
+            | grep -oE "qwfwd v[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1 | sed 's/qwfwd v//' || echo "unknown")
 
-          compare_status() {
-            local dist_epoch="$1"
-            local upstream_epoch="$2"
+          # QTV has no embedded version string; show commit SHA instead
+          DIST_QTV_VER="(no embedded version)"
 
-            if [[ "$dist_epoch" -eq 0 ]]; then
-              echo "missing in distfiles"
-            elif [[ "$upstream_epoch" -eq 0 ]]; then
-              echo "upstream date unavailable"
-            elif [[ "$dist_epoch" -ge "$upstream_epoch" ]]; then
-              echo "up-to-date or newer (by date)"
-            else
-              echo "older than upstream (by date)"
-            fi
-          }
-
-          MVD_UPSTREAM_VERSION='${{ steps.versions.outputs.mvdsv }}'
+          MVD_UPSTREAM='${{ steps.versions.outputs.mvdsv }}'
           MVD_UPSTREAM_DATE='${{ steps.versions.outputs.mvdsv_date }}'
-          KTX_UPSTREAM_VERSION='${{ steps.versions.outputs.ktx }}'
+          MVD_UPSTREAM_URL='${{ steps.versions.outputs.mvdsv_url }}'
+          KTX_UPSTREAM='${{ steps.versions.outputs.ktx }}'
           KTX_UPSTREAM_DATE='${{ steps.versions.outputs.ktx_date }}'
-          QWFWD_UPSTREAM_VERSION='${{ steps.versions.outputs.qwfwd }}'
+          KTX_UPSTREAM_URL='${{ steps.versions.outputs.ktx_url }}'
+          QWFWD_UPSTREAM='${{ steps.versions.outputs.qwfwd }}'
           QWFWD_UPSTREAM_DATE='${{ steps.versions.outputs.qwfwd_date }}'
-          QTV_UPSTREAM_VERSION='${{ steps.versions.outputs.qtv }}'
+          QWFWD_UPSTREAM_URL='${{ steps.versions.outputs.qwfwd_url }}'
+          QTV_UPSTREAM='${{ steps.versions.outputs.qtv }}'
           QTV_UPSTREAM_DATE='${{ steps.versions.outputs.qtv_date }}'
+          QTV_UPSTREAM_URL='${{ steps.versions.outputs.qtv_url }}'
 
-          MVD_FILE='build/server/mvdsv'
-          KTX_FILE='build/server/ktx/qwprogs.so'
-          QWFWD_FILE='build/server/qwfwd/qwfwd.bin'
-          QTV_FILE='build/server/qtv/qtv.bin'
+          # Compare two version strings using sort -V (handles semver correctly)
+          compare_versions() {
+            local dist="$1"
+            local upstream="$2"
+            if [[ "$dist" == "unknown" || "$dist" == "(no embedded version)" ]]; then
+              echo "version not extractable"
+            elif [[ "$dist" == "$upstream" ]]; then
+              echo "matches upstream"
+            else
+              local lower
+              lower=$(printf '%s\n%s' "$dist" "$upstream" | sort -V | head -1)
+              if [[ "$lower" == "$dist" ]]; then
+                echo "older than upstream"
+              else
+                echo "newer than upstream"
+              fi
+            fi
+          }
 
-          MVD_DIST_EPOCH=$(file_epoch "$MVD_FILE")
-          KTX_DIST_EPOCH=$(file_epoch "$KTX_FILE")
-          QWFWD_DIST_EPOCH=$(file_epoch "$QWFWD_FILE")
-          QTV_DIST_EPOCH=$(file_epoch "$QTV_FILE")
+          MVD_STATUS=$(compare_versions "$DIST_MVD_VER" "$MVD_UPSTREAM")
+          KTX_STATUS=$(compare_versions "$DIST_KTX_VER" "$KTX_UPSTREAM")
+          QWFWD_STATUS=$(compare_versions "$DIST_QWFWD_VER" "$QWFWD_UPSTREAM")
+          QTV_STATUS="no version to compare (tracked by commit)"
 
-          MVD_UPSTREAM_EPOCH=$(to_epoch "$MVD_UPSTREAM_DATE")
-          KTX_UPSTREAM_EPOCH=$(to_epoch "$KTX_UPSTREAM_DATE")
-          QWFWD_UPSTREAM_EPOCH=$(to_epoch "$QWFWD_UPSTREAM_DATE")
-          QTV_UPSTREAM_EPOCH=$(to_epoch "$QTV_UPSTREAM_DATE")
+          echo "MVDSV  distfiles=${DIST_MVD_VER}   upstream=${MVD_UPSTREAM}   status=${MVD_STATUS}"
+          echo "KTX    distfiles=${DIST_KTX_VER}   upstream=${KTX_UPSTREAM}   status=${KTX_STATUS}"
+          echo "QWFWD  distfiles=${DIST_QWFWD_VER}   upstream=${QWFWD_UPSTREAM}   status=${QWFWD_STATUS}"
+          echo "QTV    distfiles=${DIST_QTV_VER}   upstream=${QTV_UPSTREAM}   status=${QTV_STATUS}"
 
           {
             echo "## Distfiles vs Upstream Component Comparison"
             echo
-            echo "Comparison method: file timestamp in distfiles versus upstream release/commit timestamp."
+            echo "| Component | Version in distfiles | Upstream latest | Upstream release date | Status |"
+            echo "| --- | --- | --- | --- | --- |"
+            printf '| MVDSV | `%s` | [%s](%s) | %s | %s |\n' \
+              "$DIST_MVD_VER" "$MVD_UPSTREAM" "$MVD_UPSTREAM_URL" "${MVD_UPSTREAM_DATE%%T*}" "$MVD_STATUS"
+            printf '| KTX | `%s` | [%s](%s) | %s | %s |\n' \
+              "$DIST_KTX_VER" "$KTX_UPSTREAM" "$KTX_UPSTREAM_URL" "${KTX_UPSTREAM_DATE%%T*}" "$KTX_STATUS"
+            printf '| QWFWD | `%s` | [%s](%s) | %s | %s |\n' \
+              "$DIST_QWFWD_VER" "$QWFWD_UPSTREAM" "$QWFWD_UPSTREAM_URL" "${QWFWD_UPSTREAM_DATE%%T*}" "$QWFWD_STATUS"
+            printf '| QTV | %s | [%s](%s) | %s | %s |\n' \
+              "$DIST_QTV_VER" "$QTV_UPSTREAM" "$QTV_UPSTREAM_URL" "${QTV_UPSTREAM_DATE%%T*}" "$QTV_STATUS"
             echo
-            echo "| Component | Distfiles file | Distfiles timestamp (UTC) | Upstream version/ref | Upstream timestamp (UTC) | Status |"
-            echo "| --- | --- | --- | --- | --- | --- |"
-            printf '| MVDSV | `%s` | %s | %s | %s | %s |\n' "$MVD_FILE" "$(file_date_utc "$MVD_FILE")" "$MVD_UPSTREAM_VERSION" "$MVD_UPSTREAM_DATE" "$(compare_status "$MVD_DIST_EPOCH" "$MVD_UPSTREAM_EPOCH")"
-            printf '| KTX | `%s` | %s | %s | %s | %s |\n' "$KTX_FILE" "$(file_date_utc "$KTX_FILE")" "$KTX_UPSTREAM_VERSION" "$KTX_UPSTREAM_DATE" "$(compare_status "$KTX_DIST_EPOCH" "$KTX_UPSTREAM_EPOCH")"
-            printf '| QWFWD | `%s` | %s | %s | %s | %s |\n' "$QWFWD_FILE" "$(file_date_utc "$QWFWD_FILE")" "$QWFWD_UPSTREAM_VERSION" "$QWFWD_UPSTREAM_DATE" "$(compare_status "$QWFWD_DIST_EPOCH" "$QWFWD_UPSTREAM_EPOCH")"
-            printf '| QTV | `%s` | %s | %s | %s | %s |\n' "$QTV_FILE" "$(file_date_utc "$QTV_FILE")" "$QTV_UPSTREAM_VERSION" "$QTV_UPSTREAM_DATE" "$(compare_status "$QTV_DIST_EPOCH" "$QTV_UPSTREAM_EPOCH")"
-            echo
-            echo "Note: this is a timestamp-based check. It does not prove binary equality with upstream releases."
+            echo "Note: MVDSV, KTX, and QWFWD versions are extracted from embedded strings in the distfiles binaries."
+            echo "QTV does not embed a version string; it is tracked by latest commit SHA."
           } | tee /tmp/component-comparison.md
 
           cat /tmp/component-comparison.md >> "$GITHUB_STEP_SUMMARY"
