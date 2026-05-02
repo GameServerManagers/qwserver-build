@@ -15,7 +15,7 @@ dated release and a moving `latest` release.
   - QuakeWorld network forwarder/proxy binary commonly used alongside servers
     to improve routing and connectivity.
 
-These are packaged together because LinuxGSM expects one installable server
+These are packaged together to create one installable server
 bundle that contains the core daemon plus the typical competitive QW runtime
 files and tooling.
 
