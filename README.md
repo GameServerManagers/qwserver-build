@@ -35,10 +35,10 @@ This section is automatically updated by the build workflow on each run.
 | MVDSV | 1.11 | 2025-02-27 | [release](https://github.com/QW-Group/mvdsv/releases/tag/1.11) |
 | KTX | 1.47 | 2026-05-16 | [release](https://github.com/QW-Group/ktx/releases/tag/1.47) |
 | QWFWD | 1.30 | 2025-02-25 | [release](https://github.com/QW-Group/qwfwd/releases/tag/1.30) |
-| QTV | 152a43dadb95 | 2026-03-02 | [commit](https://github.com/QW-Group/qtv/commit/152a43dadb959f8c36de55c5b3b23d0431c9c344) |
+| QTV | 025ca949aca0 | 2026-06-25 | [commit](https://github.com/QW-Group/qtv/commit/025ca949aca06cad6777de0075148ac06a15f4f0) |
 | nQuake distfiles | snapshot | 2026-02-28 | [release](https://github.com/nQuake/distfiles/releases/tag/snapshot) |
 
-Last refreshed (UTC): 2026-06-22T08:57:20Z
+Last refreshed (UTC): 2026-06-29T08:11:39Z
 <!-- END AUTO-UPDATED UPSTREAM STATUS -->
 
 ## What the workflow does
