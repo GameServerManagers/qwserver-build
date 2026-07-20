@@ -38,7 +38,7 @@ This section is automatically updated by the build workflow on each run.
 | QTV | 025ca949aca0 | 2026-06-25 | [commit](https://github.com/QW-Group/qtv/commit/025ca949aca06cad6777de0075148ac06a15f4f0) |
 | nQuake distfiles | snapshot | 2026-02-28 | [release](https://github.com/nQuake/distfiles/releases/tag/snapshot) |
 
-Last refreshed (UTC): 2026-07-13T06:17:13Z
+Last refreshed (UTC): 2026-07-20T06:17:30Z
 <!-- END AUTO-UPDATED UPSTREAM STATUS -->
 
 ## What the workflow does
